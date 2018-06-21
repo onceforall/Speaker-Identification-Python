@@ -1,5 +1,5 @@
 import os
-import cPickle
+import pickle #use pickle instead of cPickle
 import numpy as np
 from scipy.io.wavfile import read
 from featureextraction import extract_features
@@ -7,6 +7,7 @@ from featureextraction import extract_features
 import warnings
 warnings.filterwarnings("ignore")
 import time
+import io
 
 """
 #path to training data
@@ -26,21 +27,27 @@ gmm_files = [os.path.join(modelpath,fname) for fname in
               os.listdir(modelpath) if fname.endswith('.gmm')]
 
 #Load the Gaussian gender Models
-models    = [cPickle.load(open(fname,'r')) for fname in gmm_files]
-speakers   = [fname.split("/")[-1].split(".gmm")[0] for fname 
-              in gmm_files]
-
+models=[]
+for fname in gmm_files:
+	with io.open(fname,'rb') as f:
+		tempo=(pickle.load(f,encoding='bytes'))#this can slove the encoding problem
+		models.append(tempo)
+#use repalce instead of split
+speakers = [fname.split("/")[-1].replace(".gmm",") for fname in gmm_files] 
 error = 0
 total_sample = 0.0
 
 
-print "Do you want to Test a Single Audio: Press '1' or The complete Test Audio Sample: Press '0' ?"
+print("Do you want to Test a Single Audio: Press '1' or The complete Test Audio Sample: Press '0' ?")
 take = int(raw_input().strip())
 if take == 1:
-	print "Enter the File name from Test Audio Sample Collection :"
+	print("Enter the File name from Test Audio Sample Collection :")
 	path = raw_input().strip()   
-    	print "Testing Audio : ", path
-    	sr,audio = read(source + path)
+    	print("Testing Audio : ", path)
+	if os.path.isfile(source+path):#considering the lack of testfile,with this code can ignore the nonexist file
+		None
+	else:
+    		sr,audio = read(source + path)
     	vector   = extract_features(audio,sr)
     
     	log_likelihood = np.zeros(len(models)) 
@@ -51,7 +58,7 @@ if take == 1:
         	log_likelihood[i] = scores.sum()
     
     	winner = np.argmax(log_likelihood)
-    	print "\tdetected as - ", speakers[winner]
+    	print("\tdetected as - ", speakers[winner])
 
     	time.sleep(1.0)
 elif take == 0:
@@ -64,29 +71,32 @@ elif take == 0:
     
     		total_sample += 1.0
     		path = path.strip()   
-    		print "Testing Audio : ", path
-    		sr,audio = read(source + path)
+    		print ("Testing Audio: ", path)
+		if os.path.isfile(source+path):#considering the lack of testfile,with this code can ignore the nonexist file
+			None
+		else:
+    			sr,audio = read(source + path)
     		vector   = extract_features(audio,sr)
     
     		log_likelihood = np.zeros(len(models)) 
     
     		for i in range(len(models)):
-        		gmm    = models[i]  #checking with each model one by one
+        		gmm = models[i]  #checking with each model one by one
         		scores = np.array(gmm.score(vector))
         		log_likelihood[i] = scores.sum()
     
     		winner = np.argmax(log_likelihood)
-    		print "\tdetected as - ", speakers[winner]
+    		print("\tdetected as - ", speakers[winner])
 
     		checker_name = path.split("_")[0]
     		if speakers[winner] != checker_name:
 			error += 1
     		time.sleep(1.0)
 
-	print error, total_sample
+	print(error, total_sample)
 	accuracy = ((total_sample - error) / total_sample) * 100
 
-	print "The Accuracy Percentage for the current testing Performance with MFCC + GMM is : ", accuracy, "%"
+	print ("The Accuracy Percentage for the current testing Performance with MFCC + GMM is : ", accuracy, "%")
 
 
-print "Hurrey ! Speaker identified. Mission Accomplished Successfully. "
+print("Hurrey ! Speaker identified. Mission Accomplished Successfully. ")
