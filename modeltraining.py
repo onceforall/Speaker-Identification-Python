@@ -1,4 +1,4 @@
-import cPickle
+import pickle
 import numpy as np
 from scipy.io.wavfile import read
 from sklearn.mixture import GMM 
@@ -6,10 +6,11 @@ from featureextraction import extract_features
 #from speakerfeatures import extract_features
 import warnings
 warnings.filterwarnings("ignore")
+import os
 
 #path to training data
 # source   = "development_set/"
-source   = "trainingData/"   
+source = "trainingData/"   
 
 #path where training speakers will be saved
 
@@ -25,13 +26,15 @@ count = 1
 features = np.asarray(())
 for path in file_paths:    
     path = path.strip()   
-    print path
+    print(path)
     
     # read the audio
-    sr,audio = read(source + path)
-    
+    if os.path.isfile(source+path):#considering the lack of trainingfile,with this code can ignore the nonexist file
+	None
+    else:
+    	sr,audio = read(source + path)
     # extract 40 dimensional MFCC & delta MFCC features
-    vector   = extract_features(audio,sr)
+    vector  = extract_features(audio,sr)
     
     if features.size == 0:
         features = vector
@@ -45,8 +48,8 @@ for path in file_paths:
         
         # dumping the trained gaussian model
         picklefile = path.split("-")[0]+".gmm"
-        cPickle.dump(gmm,open(dest + picklefile,'w'))
-        print '+ modeling completed for speaker:',picklefile," with data point = ",features.shape    
+        pickle.dump(gmm,open(dest + picklefile,'wb'))
+        print('+ modeling completed for speaker:',picklefile," with data point = ",features.shape)    
         features = np.asarray(())
         count = 0
     count = count + 1
